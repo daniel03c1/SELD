@@ -184,16 +184,28 @@ if __name__ == "__main__":
 
     joblib.dump(feats_labels, 'libri_aurora_test.jl')
     '''
+    # TEST
+    # LibriSpeech_Aurora - TEST
+    WAV_PATH = 'AVA-Test'
+    LABEL_PATH = 'AVA-Test'
+    wav_fnames, label_fnames = extract_vad_fnames(WAV_PATH, LABEL_PATH)
 
+    mel_scale = get_mel_scale(1024, 80, 16000)
+
+    feats_labels = Parallel(n_jobs=8)(
+        delayed(extract_feat_label)(w, l, mel_scale=mel_scale)
+        for w, l in tqdm.tqdm(zip(wav_fnames, label_fnames)))
+
+    joblib.dump(feats_labels, 'ava_test.jl')
+    '''
     wav_fnames, label_fnames = extract_vad_fnames(WAV_PATH, LABEL_PATH)
     window = [-19, -10, -1, 0, 1, 10, 19]
     dataset = get_vad_dataset(wav_fnames, label_fnames, window, n_fft=1024)
-    '''
     dataset = get_vad_dataset_from_pairs(
         joblib.load('timit_soundidea_train.jl'), window=window)
-    '''
     dataset = data_loader(dataset, loop_time=1, batch_size=256)
 
     for x, y in dataset.take(2):
         print(x.shape, y.shape)
+    '''
 
