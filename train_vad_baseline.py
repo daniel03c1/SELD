@@ -120,6 +120,7 @@ if __name__=='__main__':
     valset = prepare_dataset(joblib.load('libri_aurora_test.jl'),
                              window, batch_size, train=False)
     pairs = joblib.load('libri_aurora_test_tiny.jl')
+    testset = joblib.load('ava_test.jl')
 
     # start training
     search_space_2d = {
@@ -135,11 +136,7 @@ if __name__=='__main__':
              'groups': [0, 0.5, 1],
              'bottleneck_ratio': [0.25, 0.35, 0.5, 0.7, 1, 1.41, 2, 2.83, 4]},
     }
-    search_space_1d = {
-        'simple_dense_block':
-            {'units': [[16], [24], [32], [48], [64], [96], [128], [192], [256]], 
-             'dense_activation': [None, 'relu']},
-    }
+    search_space_1d = {}
 
     def sample_constraint(min_flops=None, max_flops=None, 
                           min_params=None, max_params=None):
@@ -197,34 +194,47 @@ if __name__=='__main__':
         input_shape=input_shape,
         default_config=default_config,
         constraint=constraint)
+    '''
+    model_config = {
+        'flatten': True,
+        'last_unit': len(window),
+        'BLOCK0': 'simple_dense_stage',
+        'BLOCK0_ARGS': {
+            'units': 512,
+            'depth': 2,
+            'activation': 'relu',
+            'dropout_rate': 0.5,
+        }
+    }
+    '''
 
     model, outputs = train_and_eval(model_config, input_shape, 
                                     trainset, valset, epochs=1000,
                                     name='two')
     print(outputs)
 
-    ys = []
-    ys_hat = []
-    for x, y in tqdm.tqdm(pairs):
-        x_windows = seq_to_windows(x, window)
-        y_hat = model.predict(x_windows, batch_size=batch_size, 
-                              use_multiprocessing=True)
-        y_hat = windows_to_seq(y_hat, window)
+    for dataset in [pairs[:100], testset[:100]]:
+        test_auc = tf.keras.metrics.AUC()
+        test_precision = tf.keras.metrics.Precision()
+        test_recall = tf.keras.metrics.Recall()
 
-        ys.append(y)
-        ys_hat.append(y_hat)
-        assert len(y) == len(y_hat)
+        for x, y in tqdm(dataset):
+            y_hat = model.predict(seq_to_windows(x, window), 
+                                  batch_size=batch_size, 
+                                  use_multiprocessing=True)
+            y_hat = windows_to_seq(y_hat, window)
 
-    ys = tf.concat(ys, axis=0)
-    ys_hat = tf.concat(ys_hat, axis=0)
+            assert len(y) == len(y_hat)
+            test_auc.update_state(y, y_hat)
+            test_precision.update_state(y, y_hat)
+            test_recall.update_state(y, y_hat)
 
-    # calculate metric
-    test_auc = tf.keras.metrics.AUC()(ys, ys_hat)
-    test_precision = tf.keras.metrics.Precision()(ys, ys_hat)
-    test_recall = tf.keras.metrics.Recall()(ys, ys_hat)
-    test_f1score = 2 * test_precision * test_recall \
-                 / (test_precision + test_recall + 1e-8)
+        test_auc = test_auc.result()
+        test_precision = test_precision.result()
+        test_recall = test_recall.result()
+        test_f1score = 2 * test_precision * test_recall \
+                     / (test_precision + test_recall + 1e-8)
 
-    print(f'test auc: {test_auc:.5f}')
-    print(f'test f1score: {test_f1score:.5f}')
+        print(f'test auc: {test_auc:.5f}')
+        print(f'test f1score: {test_f1score:.5f}')
 
