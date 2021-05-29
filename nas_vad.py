@@ -113,9 +113,9 @@ def sample_constraint(min_flops=None, max_flops=None,
 
                 if model_config[block] == 'mother_stage':
                     args = model_config[f'{block}_ARGS']
-                    n_convs = ((args['filters0'] > 0)
-                               + (args['filters1'] > 0)
-                               + (args['filters2'] > 0))
+                    n_convs = int((args['filters0'] > 0)
+                                  + (args['filters1'] > 0)
+                                  + (args['filters2'] > 0))
 
                     if n_convs == 1:
                         if args['filters1'] == 0:
