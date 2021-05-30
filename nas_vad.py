@@ -71,6 +71,8 @@ search_space_1d = {
         'depth': [1, 2, 3],
         'units': [3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256],
     },
+}
+'''
     'transformer_encoder_stage': {
         'depth': [1, 2, 3],
         'n_head': [1, 2, 4, 8],
@@ -86,7 +88,7 @@ search_space_1d = {
         'kernel_size': [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128],
         'pos_encoding': [None, 'basic', 'rff']
     },
-}
+'''
 
 
 def sample_constraint(min_flops=None, max_flops=None, 
@@ -111,6 +113,7 @@ def sample_constraint(min_flops=None, max_flops=None,
                     model_config[f'{block}_ARGS'], shape)
                 total_cx = dict_add(total_cx, cx)
 
+                n_convs = 0
                 if model_config[block] == 'mother_stage':
                     args = model_config[f'{block}_ARGS']
                     n_convs = int((args['filters0'] > 0)
@@ -124,6 +127,11 @@ def sample_constraint(min_flops=None, max_flops=None,
                         if args['filters1'] > 0 \
                                 and list(args['strides']) == [1, 1]:
                             return False
+
+                # first stage must be mother stage
+                if block == 'BLOCK0':
+                    if model_config[block] != 'mother_stage' or n_convs == 0:
+                        return False
 
             except ValueError as e:
                 return False
