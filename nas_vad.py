@@ -136,9 +136,19 @@ def sample_constraint(min_flops=None, max_flops=None,
                                 and list(args['strides']) == [1, 1]:
                             return False
 
-                # first stage must be mother stage
+                    # search space(3): remove identity stage
+                    if n_convs == 0:
+                        return False
+
+                # search space(2): first stage must be mother stage
                 if block == 'BLOCK0':
                     if model_config[block] != 'mother_stage' or n_convs == 0:
+                        return False
+
+                # search space(3): last stage to be 1D
+                if block == 'BLOCK2':
+                    if model_config[block] not in ['simple_dense_stage',
+                                                   'bidirectional_GRU_stage']:
                         return False
 
             except ValueError as e:
