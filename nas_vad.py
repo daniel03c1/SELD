@@ -120,6 +120,14 @@ def sample_constraint(min_flops=None, max_flops=None,
                                   + (args['filters1'] > 0)
                                   + (args['filters2'] > 0))
 
+                    # config sanity check
+                    if args['filters2'] == 0:
+                        if args['filters1'] > 0:
+                            if args['connect2'][2] == 0:
+                                return False
+                        elif args['filters0'] > 0:
+                            if args['connect2'][1] == 0:
+                                return False
                     if n_convs == 1:
                         if args['filters1'] == 0:
                             return False
