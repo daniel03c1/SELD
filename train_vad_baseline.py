@@ -2,16 +2,14 @@ import joblib
 import tensorflow as tf
 import tqdm
 
-import model_complexity
 import layers
+import model_complexity
 import models
+import stage_complexity
 from config_sampler import vad_architecture_sampler
 from data_loader import *
 from utils import dict_add, AdaBelief
 from vad_dataloader import get_vad_dataset_from_pairs, preprocess_window
-
-import stage_complexity
-from config_sampler import vad_architecture_sampler
 
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -194,26 +192,13 @@ if __name__=='__main__':
         input_shape=input_shape,
         default_config=default_config,
         constraint=constraint)
-    '''
-    model_config = {
-        'flatten': True,
-        'last_unit': len(window),
-        'BLOCK0': 'simple_dense_stage',
-        'BLOCK0_ARGS': {
-            'units': 512,
-            'depth': 2,
-            'activation': 'relu',
-            'dropout_rate': 0.5,
-        }
-    }
-    '''
 
     model, outputs = train_and_eval(model_config, input_shape, 
                                     trainset, valset, epochs=1000,
                                     name='two')
     print(outputs)
 
-    for dataset in [pairs[:100], testset[:100]]:
+    for dataset in [pairs, testset]:
         test_auc = tf.keras.metrics.AUC()
         test_precision = tf.keras.metrics.Precision()
         test_recall = tf.keras.metrics.Recall()

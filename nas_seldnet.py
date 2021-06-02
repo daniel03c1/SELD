@@ -18,6 +18,7 @@ from utils import dict_add
 
 args = argparse.ArgumentParser()
 
+<<<<<<< HEAD
 args.add_argument('--json_fname', type=str, required=True)
 args.add_argument('--train_path', type=str, 
                   default='/datasets/datasets/DCASE2020/foa_tdm_dev')
@@ -27,6 +28,17 @@ args.add_argument('--n_samples', type=int, default=256)
 args.add_argument('--n_blocks', type=int, default=4)
 args.add_argument('--min_flops', type=int, default=200_000_000)
 args.add_argument('--max_flops', type=int, default=240_000_000)
+=======
+args.add_argument('--name', type=str, required=True, help='name must be {name}_{divided index}') # 2021_1, 2021_2
+args.add_argument('--train_path', type=str, 
+                  default='/root/datasets/DCASE2021/feat_label')
+args.add_argument('--test_path', type=str, 
+                  default='/root/datasets/DCASE2021/feat_label')
+args.add_argument('--n_samples', type=int, default=256)
+args.add_argument('--n_blocks', type=int, default=4)
+args.add_argument('--min_flops', type=int, default=400_000_000)
+args.add_argument('--max_flops', type=int, default=480_000_000)
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
 
 args.add_argument('--batch_size', type=int, default=256)
 args.add_argument('--n_repeat', type=int, default=10)
@@ -57,6 +69,7 @@ search_space_1d = {
     'bidirectional_GRU_stage':
         {'depth': [1, 2, 3],
          'units': [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256]}, 
+<<<<<<< HEAD
     'transformer_encoder_stage':
         {'depth': [1, 2, 3],
          'n_head': [1, 2, 4, 8, 16],
@@ -75,6 +88,26 @@ search_space_1d = {
          'kernel_size': [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256],
          'multiplier': [1, 2, 4],
          'pos_encoding': [None, 'basic', 'rff']},
+=======
+    # 'transformer_encoder_stage':
+    #     {'depth': [1, 2, 3],
+    #      'n_head': [1, 2, 4, 8, 16],
+    #      'key_dim': [2, 3, 4, 6, 8, 12, 16, 24, 32, 48],
+    #      'ff_multiplier': [0.25, 0.5, 1, 2, 4, 8],
+    #      'kernel_size': [1, 3, 5]},
+    'simple_dense_stage':
+        {'depth': [1, 2, 3],
+         'units': [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256],
+         'dense_activation': ['relu'],
+         'dropout_rate': [0., 0.2, 0.5]},
+    # 'conformer_encoder_stage':
+    #     {'depth': [1, 2, 3],
+    #      'key_dim': [2, 3, 4, 6, 8, 12, 16, 24, 32, 48],
+    #      'n_head': [1, 2, 4, 8, 16],
+    #      'kernel_size': [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256],
+    #      'multiplier': [1, 2, 4],
+    #      'pos_encoding': [None, 'basic', 'rff']},
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
 }
 
 
@@ -90,8 +123,13 @@ def sample_constraint(min_flops=None, max_flops=None,
         blocks = sorted([b for b in model_config.keys()
                          if b.startswith('BLOCK') and not b.endswith('_ARGS')])
 
+<<<<<<< HEAD
         for block in blocks:
             try:
+=======
+        try:
+            for block in blocks:
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
                 cx, shape = get_complexity(model_config[block])(
                     model_config[f'{block}_ARGS'], shape)
                 total_cx = dict_add(total_cx, cx)
@@ -110,8 +148,25 @@ def sample_constraint(min_flops=None, max_flops=None,
                                 and list(args['strides']) == [1, 1]:
                             return False
 
+<<<<<<< HEAD
             except ValueError as e:
                 return False
+=======
+            cx, sed_shape = get_complexity(model_config['SED'])(
+                model_config['SED_ARGS'], shape)
+            cx, sed_shape = stage_complexity.linear_complexity(
+                sed_shape, model_config['n_classes'], prev_cx=cx)
+            total_cx = dict_add(total_cx, cx)
+
+            cx, doa_shape = get_complexity(model_config['DOA'])(
+                model_config['DOA_ARGS'], shape)
+            cx, doa_shape = stage_complexity.linear_complexity(
+                doa_shape, 3*model_config['n_classes'], prev_cx=cx)
+            total_cx = dict_add(total_cx, cx)
+
+        except ValueError as e:
+            return False
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
 
         # total complexity contraint
         if min_flops and total_cx['flops'] < min_flops:
@@ -166,7 +221,12 @@ def train_and_eval(train_config,
 
     model.compile(optimizer=optimizer,
                   loss={'sed_out': tf.keras.losses.BinaryCrossentropy(),
+<<<<<<< HEAD
                         'doa_out': tf.keras.losses.MSE})
+=======
+                        'doa_out': tf.keras.losses.MSE},
+                  loss_weights=[1, 1000])
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
 
     history = model.fit(trainset,
                         validation_data=testset)
@@ -195,6 +255,7 @@ def train_and_eval(train_config,
 
 if __name__=='__main__':
     train_config = args.parse_args()
+<<<<<<< HEAD
     input_shape = [300, 64, 7]
 
     # TRAIN DATASET
@@ -207,6 +268,25 @@ if __name__=='__main__':
         lambda x, y: (mask(x, axis=-3, max_mask_size=35), y),
         # freq
         lambda x, y: (mask(x, axis=-2, max_mask_size=24), y),
+=======
+    name = train_config.name
+    if not name.endswith('.json'):
+        name = f'{name}.json'
+
+    input_shape = [300, 64, 7]
+
+    # TRAIN DATASET
+    train_x = joblib.load(os.path.join(train_config.train_path, 'x.joblib'))
+    train_x = np.concatenate(train_x, axis=0)
+    train_y = joblib.load(os.path.join(train_config.train_path, 'y.joblib'))
+    train_y = np.concatenate([np.concatenate(y, axis=-1) for y in train_y], 
+                             axis=0)
+    sample_transforms = [
+        # time
+        lambda x, y: (mask(x, axis=-3, max_mask_size=24), y),
+        # freq
+        lambda x, y: (mask(x, axis=-2, max_mask_size=16), y),
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
     ]
     batch_transforms = [foa_intensity_vec_aug, split_total_labels_to_sed_doa]
     trainset = data_loader((train_x, train_y), 
@@ -237,8 +317,13 @@ if __name__=='__main__':
     start_idx = 0
 
     # resume past results
+<<<<<<< HEAD
     if os.path.exists(train_config.json_fname):
         with open(train_config.json_fname, 'r') as f:
+=======
+    if os.path.exists(name):
+        with open(name, 'r') as f:
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
             prev_results = json.load(f)
 
         if results['train_config'] != prev_results['train_config']:
@@ -266,6 +351,10 @@ if __name__=='__main__':
         outputs['time'] = time.time() - start
 
         results[f'{i:03d}'] = {'config': model_config, 'perf': outputs}
+<<<<<<< HEAD
         with open(train_config.json_fname, 'w') as f:
+=======
+        with open(name, 'w') as f:
+>>>>>>> bcdf470b762b3b6b52bcf9782aa90641baff6293
             json.dump(results, f, indent=4)
 
